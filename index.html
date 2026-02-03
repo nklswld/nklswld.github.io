@@ -5,18 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Für dich ❤️</title>
   <style>
+    :root { color-scheme: light; }
     body {
-      font-family: system-ui, Arial, sans-serif;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       margin: 0;
       min-height: 100vh;
       display: grid;
       place-items: center;
       background: #f7f7fb;
+      padding: 18px;
     }
 
     .card {
-      width: min(720px, 94vw);
-      background: white;
+      width: min(760px, 94vw);
+      background: #fff;
       border-radius: 18px;
       padding: 22px;
       box-shadow: 0 10px 30px rgba(0,0,0,.08);
@@ -24,7 +26,7 @@
     }
 
     h1 { margin: 0 0 12px; font-size: 26px; }
-    p { margin: 0 0 16px; color: #444; }
+    p  { margin: 0 0 16px; color: #444; line-height: 1.35; }
 
     /* Screens */
     .screen { display: none; }
@@ -35,6 +37,7 @@
       width: 100%;
       border-radius: 14px;
       background: #000;
+      max-height: 70vh;
     }
 
     .btnrow {
@@ -52,7 +55,8 @@
       border: 0;
       cursor: pointer;
       background: #111;
-      color: white;
+      color: #fff;
+      user-select: none;
     }
 
     .btn.secondary {
@@ -63,12 +67,13 @@
     /* Game area */
     .playground {
       position: relative;
-      height: 220px;
+      height: 240px;
       margin-top: 18px;
       border-radius: 14px;
       background: linear-gradient(180deg, #ffffff, #f2f2ff);
       border: 1px solid #ececff;
       overflow: hidden;
+      touch-action: none; /* smoother touch interactions */
     }
 
     button.choice {
@@ -79,26 +84,33 @@
       cursor: pointer;
       user-select: none;
       position: absolute;
+      -webkit-tap-highlight-color: transparent;
     }
 
     #yes {
       left: 70px;
-      top: 120px;
+      top: 140px;
       background: #22c55e;
-      color: white;
+      color: #fff;
     }
 
     #no {
-      left: 320px;
-      top: 120px;
+      left: 360px;
+      top: 140px;
       background: #ef4444;
-      color: white;
+      color: #fff;
     }
 
     .msg {
       margin-top: 14px;
-      font-weight: 600;
+      font-weight: 700;
       min-height: 1.4em;
+    }
+
+    /* Small screens: keep buttons visible */
+    @media (max-width: 520px) {
+      #yes { left: 36px; }
+      #no  { left: 200px; }
     }
   </style>
 </head>
@@ -118,36 +130,47 @@
     <!-- SCREEN 2: Video -->
     <div id="screen-video" class="screen">
       <h1>Nur für dich</h1>
+
       <video id="loveVideo" controls playsinline preload="metadata">
+        <!-- ✅ Passe den Pfad an, falls dein Video anders heißt/liegt -->
         <source src="video.mp4" type="video/mp4" />
         Dein Browser kann das Video leider nicht abspielen.
       </video>
 
       <div class="btnrow">
+        <button class="btn secondary" id="fullscreenBtn">Vollbild ⛶</button>
         <button class="btn secondary" id="skipBtn">Überspringen</button>
       </div>
+
+      <p style="margin-top:12px; font-size:14px; color:#666;">
+        Tipp: Falls der Ton aus ist, bitte am Handy den Ton einschalten 🔊
+      </p>
     </div>
 
     <!-- SCREEN 3: Game -->
     <div id="screen-game" class="screen">
       <h1>Willst du mit mir essen gehen? 🍝</h1>
+
       <div class="playground" id="area">
         <button class="choice" id="yes">Ja</button>
         <button class="choice" id="no">Nein</button>
       </div>
+
       <div class="msg" id="msg"></div>
     </div>
 
   </div>
 
   <script>
+    // ---------- Screen switching ----------
     const screenStart = document.getElementById("screen-start");
     const screenVideo = document.getElementById("screen-video");
     const screenGame  = document.getElementById("screen-game");
 
-    const startVideoBtn = document.getElementById("startVideoBtn");
-    const skipBtn = document.getElementById("skipBtn");
-    const video = document.getElementById("loveVideo");
+    const startVideoBtn  = document.getElementById("startVideoBtn");
+    const skipBtn        = document.getElementById("skipBtn");
+    const fullscreenBtn  = document.getElementById("fullscreenBtn");
+    const video          = document.getElementById("loveVideo");
 
     function show(screen) {
       screenStart.classList.remove("active");
@@ -156,30 +179,47 @@
       screen.classList.add("active");
     }
 
+    async function safePlayVideo() {
+      try { await video.play(); } catch (e) { /* controls allow manual play */ }
+    }
+
     // Start -> Video
     startVideoBtn.addEventListener("click", async () => {
       show(screenVideo);
-
-      // Versuch, direkt zu starten (auf Mobile oft nur nach User-Klick erlaubt -> passt hier)
-      try {
-        await video.play();
-      } catch (e) {
-        // Wenn blockiert, kann sie immer noch auf Play drücken (controls sind an)
-      }
+      await safePlayVideo();
     });
 
-    // Wenn Video fertig -> Game
+    // When video ends -> Game
     video.addEventListener("ended", () => {
       show(screenGame);
     });
 
     // Skip -> Game
     skipBtn.addEventListener("click", () => {
-      video.pause();
+      try { video.pause(); } catch (e) {}
       show(screenGame);
     });
 
-    // Game logic (Nein weicht aus)
+    // ---------- Fullscreen ----------
+    function requestFullscreenFor(el) {
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      if (req) { req.call(el); return true; }
+      return false;
+    }
+
+    fullscreenBtn.addEventListener("click", async () => {
+      // Try Fullscreen API first
+      const ok = requestFullscreenFor(video);
+
+      // iOS Safari fallback (often available on <video>)
+      if (!ok && typeof video.webkitEnterFullscreen === "function") {
+        try { video.webkitEnterFullscreen(); } catch (e) {}
+      }
+
+      await safePlayVideo();
+    });
+
+    // ---------- Game logic ----------
     const area = document.getElementById("area");
     const noBtn = document.getElementById("no");
     const yesBtn = document.getElementById("yes");
@@ -190,41 +230,59 @@
       noBtn.style.display = "none";
     });
 
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
     function moveNoButtonAway(pointerX, pointerY) {
       const areaRect = area.getBoundingClientRect();
       const btnRect = noBtn.getBoundingClientRect();
 
+      // Current position in area coords
       const currentX = btnRect.left - areaRect.left;
-      const currentY = btnRect.top - areaRect.top;
+      const currentY = btnRect.top  - areaRect.top;
 
-      const dx = (pointerX - btnRect.left) - btnRect.width / 2;
-      const dy = (pointerY - btnRect.top) - btnRect.height / 2;
+      // Mouse/touch relative to button center
+      const dx = (pointerX - (btnRect.left + btnRect.width / 2));
+      const dy = (pointerY - (btnRect.top  + btnRect.height / 2));
       const dist = Math.hypot(dx, dy);
 
-      const triggerDistance = 90;
+      const triggerDistance = 95;
       if (dist > triggerDistance) return;
 
-      const maxX = area.clientWidth - noBtn.offsetWidth;
+      const maxX = area.clientWidth  - noBtn.offsetWidth;
       const maxY = area.clientHeight - noBtn.offsetHeight;
 
+      // Move opposite of pointer vector + small randomness
       const angle = Math.atan2(dy, dx) + Math.PI;
-      const step = 150;
+      const step  = 160;
 
-      let newX = currentX + Math.cos(angle) * step + (Math.random() * 60 - 30);
-      let newY = currentY + Math.sin(angle) * step + (Math.random() * 60 - 30);
+      let newX = currentX + Math.cos(angle) * step + (Math.random() * 70 - 35);
+      let newY = currentY + Math.sin(angle) * step + (Math.random() * 70 - 35);
 
-      newX = Math.max(10, Math.min(maxX - 10, newX));
-      newY = Math.max(10, Math.min(maxY - 10, newY));
+      // Keep within bounds with margin
+      const margin = 8;
+      newX = clamp(newX, margin, maxX - margin);
+      newY = clamp(newY, margin, maxY - margin);
 
       noBtn.style.left = newX + "px";
-      noBtn.style.top = newY + "px";
+      noBtn.style.top  = newY + "px";
     }
 
+    // Mouse support
     area.addEventListener("mousemove", (e) => moveNoButtonAway(e.clientX, e.clientY));
+
+    // Touch support
     area.addEventListener("touchmove", (e) => {
       const t = e.touches[0];
+      if (!t) return;
       moveNoButtonAway(t.clientX, t.clientY);
     }, { passive: true });
+
+    // Ensure initial positioning uses inline styles (optional, but stable)
+    // (If you change default CSS positions, you can remove this.)
+    noBtn.style.left  = noBtn.style.left  || "360px";
+    noBtn.style.top   = noBtn.style.top   || "140px";
+    yesBtn.style.left = yesBtn.style.left || "70px";
+    yesBtn.style.top  = yesBtn.style.top  || "140px";
   </script>
 </body>
 </html>
