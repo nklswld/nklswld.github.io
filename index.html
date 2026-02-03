@@ -3,87 +3,228 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Eine wichtige Frage</title>
+  <title>Für dich ❤️</title>
   <style>
     body {
       font-family: system-ui, Arial, sans-serif;
       margin: 0;
-      height: 100vh;
+      min-height: 100vh;
       display: grid;
       place-items: center;
       background: #f7f7fb;
     }
+
     .card {
-      width: min(520px, 92vw);
+      width: min(720px, 94vw);
       background: white;
       border-radius: 18px;
-      padding: 28px;
+      padding: 22px;
       box-shadow: 0 10px 30px rgba(0,0,0,.08);
       text-align: center;
     }
-    h1 { margin-bottom: 20px; }
-    .area {
+
+    h1 { margin: 0 0 12px; font-size: 26px; }
+    p { margin: 0 0 16px; color: #444; }
+
+    /* Screens */
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* Video */
+    video {
+      width: 100%;
+      border-radius: 14px;
+      background: #000;
+    }
+
+    .btnrow {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .btn {
+      font-size: 16px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 0;
+      cursor: pointer;
+      background: #111;
+      color: white;
+    }
+
+    .btn.secondary {
+      background: #eaeaea;
+      color: #111;
+    }
+
+    /* Game area */
+    .playground {
       position: relative;
       height: 220px;
-      background: #f0f0ff;
+      margin-top: 18px;
       border-radius: 14px;
+      background: linear-gradient(180deg, #ffffff, #f2f2ff);
+      border: 1px solid #ececff;
       overflow: hidden;
     }
-    button {
-      position: absolute;
+
+    button.choice {
       font-size: 18px;
       padding: 12px 18px;
       border-radius: 12px;
-      border: none;
+      border: 0;
       cursor: pointer;
+      user-select: none;
+      position: absolute;
     }
+
     #yes {
-      left: 60px;
+      left: 70px;
       top: 120px;
       background: #22c55e;
       color: white;
     }
+
     #no {
-      left: 280px;
+      left: 320px;
       top: 120px;
       background: #ef4444;
       color: white;
     }
+
     .msg {
-      margin-top: 15px;
+      margin-top: 14px;
       font-weight: 600;
+      min-height: 1.4em;
     }
   </style>
 </head>
+
 <body>
   <div class="card">
-    <h1>Willst du mit mir essen gehen? 🍝</h1>
-    <div class="area" id="area">
-      <button id="yes">Ja</button>
-      <button id="no">Nein</button>
+
+    <!-- SCREEN 1: Click-to-start -->
+    <div id="screen-start" class="screen active">
+      <h1>Hey du ❤️</h1>
+      <p>Ich hab dir was Kleines vorbereitet. Klick auf Start.</p>
+      <div class="btnrow">
+        <button class="btn" id="startVideoBtn">Video starten ▶</button>
+      </div>
     </div>
-    <div class="msg" id="msg"></div>
+
+    <!-- SCREEN 2: Video -->
+    <div id="screen-video" class="screen">
+      <h1>Nur für dich</h1>
+      <video id="loveVideo" controls playsinline preload="metadata">
+        <source src="video.mp4" type="video/mp4" />
+        Dein Browser kann das Video leider nicht abspielen.
+      </video>
+
+      <div class="btnrow">
+        <button class="btn secondary" id="skipBtn">Überspringen</button>
+      </div>
+    </div>
+
+    <!-- SCREEN 3: Game -->
+    <div id="screen-game" class="screen">
+      <h1>Willst du mit mir essen gehen? 🍝</h1>
+      <div class="playground" id="area">
+        <button class="choice" id="yes">Ja</button>
+        <button class="choice" id="no">Nein</button>
+      </div>
+      <div class="msg" id="msg"></div>
+    </div>
+
   </div>
 
   <script>
-    const noBtn = document.getElementById("no");
-    const yesBtn = document.getElementById("yes");
-    const area = document.getElementById("area");
-    const msg = document.getElementById("msg");
+    const screenStart = document.getElementById("screen-start");
+    const screenVideo = document.getElementById("screen-video");
+    const screenGame  = document.getElementById("screen-game");
 
-    yesBtn.onclick = () => {
-      msg.textContent = "Yay 😍 Dann sag mir wann!";
-      noBtn.style.display = "none";
-    };
+    const startVideoBtn = document.getElementById("startVideoBtn");
+    const skipBtn = document.getElementById("skipBtn");
+    const video = document.getElementById("loveVideo");
 
-    area.addEventListener("mousemove", e => {
-      const r = noBtn.getBoundingClientRect();
-      const d = Math.hypot(e.clientX - r.left, e.clientY - r.top);
-      if (d < 80) {
-        noBtn.style.left = Math.random() * (area.clientWidth - 100) + "px";
-        noBtn.style.top = Math.random() * (area.clientHeight - 50) + "px";
+    function show(screen) {
+      screenStart.classList.remove("active");
+      screenVideo.classList.remove("active");
+      screenGame.classList.remove("active");
+      screen.classList.add("active");
+    }
+
+    // Start -> Video
+    startVideoBtn.addEventListener("click", async () => {
+      show(screenVideo);
+
+      // Versuch, direkt zu starten (auf Mobile oft nur nach User-Klick erlaubt -> passt hier)
+      try {
+        await video.play();
+      } catch (e) {
+        // Wenn blockiert, kann sie immer noch auf Play drücken (controls sind an)
       }
     });
+
+    // Wenn Video fertig -> Game
+    video.addEventListener("ended", () => {
+      show(screenGame);
+    });
+
+    // Skip -> Game
+    skipBtn.addEventListener("click", () => {
+      video.pause();
+      show(screenGame);
+    });
+
+    // Game logic (Nein weicht aus)
+    const area = document.getElementById("area");
+    const noBtn = document.getElementById("no");
+    const yesBtn = document.getElementById("yes");
+    const msg = document.getElementById("msg");
+
+    yesBtn.addEventListener("click", () => {
+      msg.textContent = "Yay! 😍 Dann sag mir wann & wo – ich freu mich!";
+      noBtn.style.display = "none";
+    });
+
+    function moveNoButtonAway(pointerX, pointerY) {
+      const areaRect = area.getBoundingClientRect();
+      const btnRect = noBtn.getBoundingClientRect();
+
+      const currentX = btnRect.left - areaRect.left;
+      const currentY = btnRect.top - areaRect.top;
+
+      const dx = (pointerX - btnRect.left) - btnRect.width / 2;
+      const dy = (pointerY - btnRect.top) - btnRect.height / 2;
+      const dist = Math.hypot(dx, dy);
+
+      const triggerDistance = 90;
+      if (dist > triggerDistance) return;
+
+      const maxX = area.clientWidth - noBtn.offsetWidth;
+      const maxY = area.clientHeight - noBtn.offsetHeight;
+
+      const angle = Math.atan2(dy, dx) + Math.PI;
+      const step = 150;
+
+      let newX = currentX + Math.cos(angle) * step + (Math.random() * 60 - 30);
+      let newY = currentY + Math.sin(angle) * step + (Math.random() * 60 - 30);
+
+      newX = Math.max(10, Math.min(maxX - 10, newX));
+      newY = Math.max(10, Math.min(maxY - 10, newY));
+
+      noBtn.style.left = newX + "px";
+      noBtn.style.top = newY + "px";
+    }
+
+    area.addEventListener("mousemove", (e) => moveNoButtonAway(e.clientX, e.clientY));
+    area.addEventListener("touchmove", (e) => {
+      const t = e.touches[0];
+      moveNoButtonAway(t.clientX, t.clientY);
+    }, { passive: true });
   </script>
 </body>
 </html>
