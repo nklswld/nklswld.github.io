@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Eine wichtige Frage</title>
+  <style>
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      margin: 0;
+      height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #f7f7fb;
+    }
+    .card {
+      width: min(520px, 92vw);
+      background: white;
+      border-radius: 18px;
+      padding: 28px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+      text-align: center;
+    }
+    h1 { margin-bottom: 20px; }
+    .area {
+      position: relative;
+      height: 220px;
+      background: #f0f0ff;
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    button {
+      position: absolute;
+      font-size: 18px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+    }
+    #yes {
+      left: 60px;
+      top: 120px;
+      background: #22c55e;
+      color: white;
+    }
+    #no {
+      left: 280px;
+      top: 120px;
+      background: #ef4444;
+      color: white;
+    }
+    .msg {
+      margin-top: 15px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Willst du mit mir essen gehen? 🍝</h1>
+    <div class="area" id="area">
+      <button id="yes">Ja</button>
+      <button id="no">Nein</button>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <script>
+    const noBtn = document.getElementById("no");
+    const yesBtn = document.getElementById("yes");
+    const area = document.getElementById("area");
+    const msg = document.getElementById("msg");
+
+    yesBtn.onclick = () => {
+      msg.textContent = "Yay 😍 Dann sag mir wann!";
+      noBtn.style.display = "none";
+    };
+
+    area.addEventListener("mousemove", e => {
+      const r = noBtn.getBoundingClientRect();
+      const d = Math.hypot(e.clientX - r.left, e.clientY - r.top);
+      if (d < 80) {
+        noBtn.style.left = Math.random() * (area.clientWidth - 100) + "px";
+        noBtn.style.top = Math.random() * (area.clientHeight - 50) + "px";
+      }
+    });
+  </script>
+</body>
+</html>
