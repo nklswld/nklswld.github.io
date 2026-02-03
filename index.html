@@ -32,6 +32,17 @@
     .screen { display: none; }
     .screen.active { display: block; }
 
+    /* Fade-in for game screen */
+    .fade {
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 650ms ease, transform 650ms ease;
+    }
+    .fade.in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
     /* Video */
     video {
       width: 100%;
@@ -73,7 +84,7 @@
       background: linear-gradient(180deg, #ffffff, #f2f2ff);
       border: 1px solid #ececff;
       overflow: hidden;
-      touch-action: none; /* smoother touch interactions */
+      touch-action: none;
     }
 
     button.choice {
@@ -107,7 +118,6 @@
       min-height: 1.4em;
     }
 
-    /* Small screens: keep buttons visible */
     @media (max-width: 520px) {
       #yes { left: 36px; }
       #no  { left: 200px; }
@@ -147,16 +157,18 @@
       </p>
     </div>
 
-    <!-- SCREEN 3: Game -->
+    <!-- SCREEN 3: Game (fade container) -->
     <div id="screen-game" class="screen">
-      <h1>Willst du mit mir essen gehen? 🍝</h1>
+      <div id="gameFade" class="fade">
+        <h1>Willst du mit mir essen gehen? 🍝</h1>
 
-      <div class="playground" id="area">
-        <button class="choice" id="yes">Ja</button>
-        <button class="choice" id="no">Nein</button>
+        <div class="playground" id="area">
+          <button class="choice" id="yes">Ja</button>
+          <button class="choice" id="no">Nein</button>
+        </div>
+
+        <div class="msg" id="msg"></div>
       </div>
-
-      <div class="msg" id="msg"></div>
     </div>
 
   </div>
@@ -172,11 +184,21 @@
     const fullscreenBtn  = document.getElementById("fullscreenBtn");
     const video          = document.getElementById("loveVideo");
 
+    const gameFade       = document.getElementById("gameFade");
+
     function show(screen) {
       screenStart.classList.remove("active");
       screenVideo.classList.remove("active");
       screenGame.classList.remove("active");
       screen.classList.add("active");
+    }
+
+    function fadeInGame() {
+      // reset -> then animate
+      gameFade.classList.remove("in");
+      // Force reflow so transition triggers reliably
+      void gameFade.offsetWidth;
+      requestAnimationFrame(() => gameFade.classList.add("in"));
     }
 
     async function safePlayVideo() {
@@ -189,15 +211,22 @@
       await safePlayVideo();
     });
 
-    // When video ends -> Game
-    video.addEventListener("ended", () => {
+    function goToGame() {
       show(screenGame);
+      fadeInGame();
+      // Make sure "Nein" is placed safely when entering
+      placeNoSafely();
+    }
+
+    // When video ends -> Game (with fade)
+    video.addEventListener("ended", () => {
+      goToGame();
     });
 
-    // Skip -> Game
+    // Skip -> Game (with fade)
     skipBtn.addEventListener("click", () => {
       try { video.pause(); } catch (e) {}
-      show(screenGame);
+      goToGame();
     });
 
     // ---------- Fullscreen ----------
@@ -208,14 +237,10 @@
     }
 
     fullscreenBtn.addEventListener("click", async () => {
-      // Try Fullscreen API first
       const ok = requestFullscreenFor(video);
-
-      // iOS Safari fallback (often available on <video>)
       if (!ok && typeof video.webkitEnterFullscreen === "function") {
         try { video.webkitEnterFullscreen(); } catch (e) {}
       }
-
       await safePlayVideo();
     });
 
@@ -225,46 +250,89 @@
     const yesBtn = document.getElementById("yes");
     const msg = document.getElementById("msg");
 
+    let yesChosen = false;
+
     yesBtn.addEventListener("click", () => {
+      yesChosen = true;
       msg.textContent = "Yay! 😍 Dann sag mir wann & wo – ich freu mich!";
       noBtn.style.display = "none";
     });
 
+    // FIX: Prevent "Nein" click entirely (no matter what)
+    // -> We still allow hovering/touch proximity to move it.
+    noBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // In case it somehow gets clicked, move it immediately.
+      bumpNoRandom();
+      return false;
+    });
+
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
+    // Keep "Nein" away from edges so it can't be trapped in corners
+    function safeBounds() {
+      const maxX = area.clientWidth  - noBtn.offsetWidth;
+      const maxY = area.clientHeight - noBtn.offsetHeight;
+      const pad = 22; // bigger padding = harder to trap
+      return {
+        minX: pad,
+        minY: pad,
+        maxX: Math.max(pad, maxX - pad),
+        maxY: Math.max(pad, maxY - pad)
+      };
+    }
+
+    function setNoPos(x, y) {
+      noBtn.style.left = x + "px";
+      noBtn.style.top  = y + "px";
+    }
+
+    function bumpNoRandom() {
+      const b = safeBounds();
+      const x = b.minX + Math.random() * (b.maxX - b.minX);
+      const y = b.minY + Math.random() * (b.maxY - b.minY);
+      setNoPos(x, y);
+    }
+
+    function placeNoSafely() {
+      // On first show / resize: place it at a safe random position (not near corners)
+      bumpNoRandom();
+    }
+
+    // Move away from pointer, but always keep safe padding from edges
     function moveNoButtonAway(pointerX, pointerY) {
+      if (yesChosen) return;
+
       const areaRect = area.getBoundingClientRect();
       const btnRect = noBtn.getBoundingClientRect();
 
-      // Current position in area coords
+      const centerX = btnRect.left + btnRect.width / 2;
+      const centerY = btnRect.top  + btnRect.height / 2;
+
+      const dx = pointerX - centerX;
+      const dy = pointerY - centerY;
+      const dist = Math.hypot(dx, dy);
+
+      const triggerDistance = 110; // slightly bigger to prevent corner trapping
+      if (dist > triggerDistance) return;
+
+      // current pos in area coords
       const currentX = btnRect.left - areaRect.left;
       const currentY = btnRect.top  - areaRect.top;
 
-      // Mouse/touch relative to button center
-      const dx = (pointerX - (btnRect.left + btnRect.width / 2));
-      const dy = (pointerY - (btnRect.top  + btnRect.height / 2));
-      const dist = Math.hypot(dx, dy);
-
-      const triggerDistance = 95;
-      if (dist > triggerDistance) return;
-
-      const maxX = area.clientWidth  - noBtn.offsetWidth;
-      const maxY = area.clientHeight - noBtn.offsetHeight;
-
-      // Move opposite of pointer vector + small randomness
+      // opposite direction
       const angle = Math.atan2(dy, dx) + Math.PI;
-      const step  = 160;
+      const step  = 190;
 
       let newX = currentX + Math.cos(angle) * step + (Math.random() * 70 - 35);
       let newY = currentY + Math.sin(angle) * step + (Math.random() * 70 - 35);
 
-      // Keep within bounds with margin
-      const margin = 8;
-      newX = clamp(newX, margin, maxX - margin);
-      newY = clamp(newY, margin, maxY - margin);
+      const b = safeBounds();
+      newX = clamp(newX, b.minX, b.maxX);
+      newY = clamp(newY, b.minY, b.maxY);
 
-      noBtn.style.left = newX + "px";
-      noBtn.style.top  = newY + "px";
+      setNoPos(newX, newY);
     }
 
     // Mouse support
@@ -277,8 +345,18 @@
       moveNoButtonAway(t.clientX, t.clientY);
     }, { passive: true });
 
-    // Ensure initial positioning uses inline styles (optional, but stable)
-    // (If you change default CSS positions, you can remove this.)
+    // Also move away when the pointer enters the button area (extra safety)
+    noBtn.addEventListener("mouseenter", () => bumpNoRandom());
+    noBtn.addEventListener("touchstart", () => bumpNoRandom(), { passive: true });
+
+    // Handle resize/orientation changes (mobile)
+    window.addEventListener("resize", () => {
+      if (screenGame.classList.contains("active") && !yesChosen) {
+        placeNoSafely();
+      }
+    });
+
+    // Initial inline fallback positions (not critical)
     noBtn.style.left  = noBtn.style.left  || "360px";
     noBtn.style.top   = noBtn.style.top   || "140px";
     yesBtn.style.left = yesBtn.style.left || "70px";
