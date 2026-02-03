@@ -75,6 +75,11 @@
       color: #111;
     }
 
+    .btn[disabled] {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
     /* Game area */
     .playground {
       position: relative;
@@ -149,7 +154,7 @@
 
       <div class="btnrow">
         <button class="btn secondary" id="fullscreenBtn">Vollbild ⛶</button>
-        <button class="btn secondary" id="skipBtn">Überspringen</button>
+        <button class="btn" id="weiterBtn" disabled>Weiter</button>
       </div>
 
       <p style="margin-top:12px; font-size:14px; color:#666;">
@@ -159,6 +164,10 @@
 
     <!-- SCREEN 3: Game (fade container) -->
     <div id="screen-game" class="screen">
+      <div class="btnrow" style="margin-top:0; margin-bottom:10px;">
+        <button class="btn secondary" id="backToVideoBtn">Zurück</button>
+      </div>
+
       <div id="gameFade" class="fade">
         <h1>Willst du mit mir essen gehen? 🍝</h1>
 
@@ -179,12 +188,13 @@
     const screenVideo = document.getElementById("screen-video");
     const screenGame  = document.getElementById("screen-game");
 
-    const startVideoBtn  = document.getElementById("startVideoBtn");
-    const skipBtn        = document.getElementById("skipBtn");
-    const fullscreenBtn  = document.getElementById("fullscreenBtn");
-    const video          = document.getElementById("loveVideo");
+    const startVideoBtn   = document.getElementById("startVideoBtn");
+    const fullscreenBtn   = document.getElementById("fullscreenBtn");
+    const weiterBtn       = document.getElementById("weiterBtn");
+    const backToVideoBtn  = document.getElementById("backToVideoBtn");
 
-    const gameFade       = document.getElementById("gameFade");
+    const video           = document.getElementById("loveVideo");
+    const gameFade        = document.getElementById("gameFade");
 
     function show(screen) {
       screenStart.classList.remove("active");
@@ -194,10 +204,8 @@
     }
 
     function fadeInGame() {
-      // reset -> then animate
       gameFade.classList.remove("in");
-      // Force reflow so transition triggers reliably
-      void gameFade.offsetWidth;
+      void gameFade.offsetWidth; // reflow
       requestAnimationFrame(() => gameFade.classList.add("in"));
     }
 
@@ -205,28 +213,65 @@
       try { await video.play(); } catch (e) { /* controls allow manual play */ }
     }
 
-    // Start -> Video
-    startVideoBtn.addEventListener("click", async () => {
+    function resetGameState() {
+      yesChosen = false;
+      msg.textContent = "";
+      noBtn.style.display = "inline-block";
+      placeNoSafely();
+    }
+
+    function goToVideo({ resume = false } = {}) {
       show(screenVideo);
-      await safePlayVideo();
-    });
+      // Keep "Weiter" disabled until the video has actually ended
+      weiterBtn.disabled = true;
+
+      if (resume) {
+        // do nothing; user continues watching
+      } else {
+        // restart from beginning
+        try { video.currentTime = 0; } catch (e) {}
+      }
+      // Don’t force play; let user decide (but we can try if it came from a click)
+      // safePlayVideo();
+    }
 
     function goToGame() {
       show(screenGame);
       fadeInGame();
-      // Make sure "Nein" is placed safely when entering
-      placeNoSafely();
+      resetGameState();
     }
 
-    // When video ends -> Game (with fade)
+    // Start -> Video
+    startVideoBtn.addEventListener("click", async () => {
+      goToVideo({ resume: false });
+      await safePlayVideo();
+    });
+
+    // Enable "Weiter" ONLY when video fully ended
     video.addEventListener("ended", () => {
+      weiterBtn.disabled = false;
+    });
+
+    // If user seeks backwards or restarts, keep "Weiter" disabled again
+    video.addEventListener("play", () => {
+      // If it was enabled from a previous full playthrough but user replays, disable until end again
+      if (!video.ended) weiterBtn.disabled = true;
+    });
+    video.addEventListener("seeked", () => {
+      if (!video.ended) weiterBtn.disabled = true;
+    });
+
+    // Click "Weiter" -> Game (with fade)
+    weiterBtn.addEventListener("click", () => {
+      if (weiterBtn.disabled) return;
       goToGame();
     });
 
-    // Skip -> Game (with fade)
-    skipBtn.addEventListener("click", () => {
-      try { video.pause(); } catch (e) {}
-      goToGame();
+    // Back button on game -> Video (resume from beginning OR keep last frame?)
+    // Here: go back to video and restart it for a clean experience.
+    backToVideoBtn.addEventListener("click", () => {
+      // Optional: pause game vibe; no need to reset anything else
+      goToVideo({ resume: false });
     });
 
     // ---------- Fullscreen ----------
@@ -259,22 +304,19 @@
     });
 
     // FIX: Prevent "Nein" click entirely (no matter what)
-    // -> We still allow hovering/touch proximity to move it.
     noBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
-      // In case it somehow gets clicked, move it immediately.
       bumpNoRandom();
       return false;
     });
 
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-    // Keep "Nein" away from edges so it can't be trapped in corners
     function safeBounds() {
       const maxX = area.clientWidth  - noBtn.offsetWidth;
       const maxY = area.clientHeight - noBtn.offsetHeight;
-      const pad = 22; // bigger padding = harder to trap
+      const pad = 22; // keep away from corners/edges
       return {
         minX: pad,
         minY: pad,
@@ -296,11 +338,9 @@
     }
 
     function placeNoSafely() {
-      // On first show / resize: place it at a safe random position (not near corners)
       bumpNoRandom();
     }
 
-    // Move away from pointer, but always keep safe padding from edges
     function moveNoButtonAway(pointerX, pointerY) {
       if (yesChosen) return;
 
@@ -314,14 +354,12 @@
       const dy = pointerY - centerY;
       const dist = Math.hypot(dx, dy);
 
-      const triggerDistance = 110; // slightly bigger to prevent corner trapping
+      const triggerDistance = 110;
       if (dist > triggerDistance) return;
 
-      // current pos in area coords
       const currentX = btnRect.left - areaRect.left;
       const currentY = btnRect.top  - areaRect.top;
 
-      // opposite direction
       const angle = Math.atan2(dy, dx) + Math.PI;
       const step  = 190;
 
@@ -335,28 +373,24 @@
       setNoPos(newX, newY);
     }
 
-    // Mouse support
     area.addEventListener("mousemove", (e) => moveNoButtonAway(e.clientX, e.clientY));
-
-    // Touch support
     area.addEventListener("touchmove", (e) => {
       const t = e.touches[0];
       if (!t) return;
       moveNoButtonAway(t.clientX, t.clientY);
     }, { passive: true });
 
-    // Also move away when the pointer enters the button area (extra safety)
+    // Extra safety
     noBtn.addEventListener("mouseenter", () => bumpNoRandom());
     noBtn.addEventListener("touchstart", () => bumpNoRandom(), { passive: true });
 
-    // Handle resize/orientation changes (mobile)
     window.addEventListener("resize", () => {
       if (screenGame.classList.contains("active") && !yesChosen) {
         placeNoSafely();
       }
     });
 
-    // Initial inline fallback positions (not critical)
+    // Initial fallback positions (not critical)
     noBtn.style.left  = noBtn.style.left  || "360px";
     noBtn.style.top   = noBtn.style.top   || "140px";
     yesBtn.style.left = yesBtn.style.left || "70px";
