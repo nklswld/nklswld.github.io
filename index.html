@@ -154,8 +154,9 @@
       </video>
 
       <div class="btnrow">
+        <button class="btn secondary" id="back1">Zurück</button>
         <button class="btn secondary" id="fs1">Vollbild ⛶</button>
-        <button class="btn" id="weiter1" disabled>Weiter</button>
+        <button class="btn" id="weiter1">Weiter</button>
       </div>
 
       <p style="margin-top:12px; font-size:14px; color:#666;">
@@ -177,7 +178,7 @@
       <div class="btnrow">
         <button class="btn secondary" id="back2">Zurück</button>
         <button class="btn secondary" id="fs2">Vollbild ⛶</button>
-        <button class="btn" id="weiter2" disabled>Weiter</button>
+        <button class="btn" id="weiter2">Weiter</button>
       </div>
     </div>
 
@@ -248,6 +249,7 @@
     const video1     = document.getElementById("video1");
     const weiter1    = document.getElementById("weiter1");
     const fs1        = document.getElementById("fs1");
+    const back1      = document.getElementById("back1");
 
     const video2     = document.getElementById("video2");
     const back2      = document.getElementById("back2");
@@ -263,8 +265,6 @@
 
     function goVideo1({ restart = true } = {}) {
       showOnly(screenV1, screens);
-      weiter1.disabled = true;
-
       if (restart) {
         try { video1.currentTime = 0; } catch (e) {}
       }
@@ -272,8 +272,6 @@
 
     function goVideo2({ restart = true } = {}) {
       showOnly(screenV2, screens);
-      weiter2.disabled = true;
-
       if (restart) {
         try { video2.currentTime = 0; } catch (e) {}
       }
@@ -291,15 +289,15 @@
       await safePlay(video1);
     });
 
-    // Video1: enable Weiter only if fully watched
-    video1.addEventListener("ended", () => { weiter1.disabled = false; });
-    video1.addEventListener("play",  () => { if (!video1.ended) weiter1.disabled = true; });
-    video1.addEventListener("seeked",() => { if (!video1.ended) weiter1.disabled = true; });
+    // Back button on Video1 -> Start
+    back1.addEventListener("click", () => {
+      try { video1.pause(); } catch (e) {}
+      goStart();
+    });
 
+    // Weiter on Video1 -> Video2 (anytime)
     weiter1.addEventListener("click", async () => {
-      if (weiter1.disabled) return;
       goVideo2({ restart: true });
-      // optional: auto-play second video after click
       await safePlay(video2);
     });
 
@@ -308,19 +306,14 @@
       await safePlay(video1);
     });
 
-    // Video2: back + enable Weiter only if fully watched
+    // Video2: back to video1
     back2.addEventListener("click", () => {
-      // go back to video1, restart for a clean flow
       try { video2.pause(); } catch (e) {}
-      goVideo1({ restart: false }); // keep video1 position if you want
+      goVideo1({ restart: false });
     });
 
-    video2.addEventListener("ended", () => { weiter2.disabled = false; });
-    video2.addEventListener("play",  () => { if (!video2.ended) weiter2.disabled = true; });
-    video2.addEventListener("seeked",() => { if (!video2.ended) weiter2.disabled = true; });
-
+    // Weiter on Video2 -> Game (anytime)
     weiter2.addEventListener("click", () => {
-      if (weiter2.disabled) return;
       goGame();
     });
 
@@ -329,9 +322,9 @@
       await safePlay(video2);
     });
 
-    // Game: back to video2 (restart video2 for a clean flow)
+    // Game: back to video2
     backToV2.addEventListener("click", () => {
-      goVideo2({ restart: false }); // keep position; set true to restart
+      goVideo2({ restart: false });
     });
 
     // ---------- game logic ----------
