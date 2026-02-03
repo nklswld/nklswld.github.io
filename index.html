@@ -6,6 +6,7 @@
   <title>Für dich ❤️</title>
   <style>
     :root { color-scheme: light; }
+
     body {
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
       margin: 0;
@@ -43,7 +44,7 @@
       transform: translateY(0);
     }
 
-    /* Video */
+    /* Videos */
     video {
       width: 100%;
       border-radius: 14px;
@@ -138,23 +139,23 @@
       <h1>Hey du ❤️</h1>
       <p>Ich hab dir was Kleines vorbereitet. Klick auf Start.</p>
       <div class="btnrow">
-        <button class="btn" id="startVideoBtn">Video starten ▶</button>
+        <button class="btn" id="startBtn">Start ▶</button>
       </div>
     </div>
 
-    <!-- SCREEN 2: Video -->
-    <div id="screen-video" class="screen">
+    <!-- SCREEN 2: Video 1 (assets/video.mp4) -->
+    <div id="screen-video1" class="screen">
       <h1>Nur für dich</h1>
 
-      <video id="loveVideo" controls playsinline preload="metadata">
-        <!-- ✅ Passe den Pfad an, falls dein Video anders heißt/liegt -->
+      <video id="video1" controls playsinline preload="metadata">
+        <!-- ✅ Video 1 -->
         <source src="video.mp4" type="video/mp4" />
         Dein Browser kann das Video leider nicht abspielen.
       </video>
 
       <div class="btnrow">
-        <button class="btn secondary" id="fullscreenBtn">Vollbild ⛶</button>
-        <button class="btn" id="weiterBtn" disabled>Weiter</button>
+        <button class="btn secondary" id="fs1">Vollbild ⛶</button>
+        <button class="btn" id="weiter1" disabled>Weiter</button>
       </div>
 
       <p style="margin-top:12px; font-size:14px; color:#666;">
@@ -162,12 +163,26 @@
       </p>
     </div>
 
-    <!-- SCREEN 3: Game (fade container) -->
-    <div id="screen-game" class="screen">
-      <div class="btnrow" style="margin-top:0; margin-bottom:10px;">
-        <button class="btn secondary" id="backToVideoBtn">Zurück</button>
-      </div>
+    <!-- SCREEN 3: Video 2 (zusammenschnitt.mp4 in root) -->
+    <div id="screen-video2" class="screen">
+      <h1>Ein kleiner Zusammenschnitt</h1>
 
+      <video id="video2" controls playsinline preload="metadata">
+        <!-- ✅ Video 2 im Root -->
+        <source src="zusammenschnitt.mp4" type="video/mp4" />
+        Dein Browser kann das Video leider nicht abspielen.
+      </video>
+
+      <!-- Buttons under the video -->
+      <div class="btnrow">
+        <button class="btn secondary" id="back2">Zurück</button>
+        <button class="btn secondary" id="fs2">Vollbild ⛶</button>
+        <button class="btn" id="weiter2" disabled>Weiter</button>
+      </div>
+    </div>
+
+    <!-- SCREEN 4: Game -->
+    <div id="screen-game" class="screen">
       <div id="gameFade" class="fade">
         <h1>Willst du mit mir essen gehen? 🍝</h1>
 
@@ -177,41 +192,155 @@
         </div>
 
         <div class="msg" id="msg"></div>
+
+        <!-- Back button under the game -->
+        <div class="btnrow">
+          <button class="btn secondary" id="backToVideo2">Zurück</button>
+        </div>
       </div>
     </div>
 
   </div>
 
   <script>
-    // ---------- Screen switching ----------
-    const screenStart = document.getElementById("screen-start");
-    const screenVideo = document.getElementById("screen-video");
-    const screenGame  = document.getElementById("screen-game");
-
-    const startVideoBtn   = document.getElementById("startVideoBtn");
-    const fullscreenBtn   = document.getElementById("fullscreenBtn");
-    const weiterBtn       = document.getElementById("weiterBtn");
-    const backToVideoBtn  = document.getElementById("backToVideoBtn");
-
-    const video           = document.getElementById("loveVideo");
-    const gameFade        = document.getElementById("gameFade");
-
-    function show(screen) {
-      screenStart.classList.remove("active");
-      screenVideo.classList.remove("active");
-      screenGame.classList.remove("active");
-      screen.classList.add("active");
+    // ---------- helpers ----------
+    function showOnly(activeEl, all) {
+      all.forEach(el => el.classList.remove("active"));
+      activeEl.classList.add("active");
     }
 
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+    async function safePlay(videoEl) {
+      try { await videoEl.play(); } catch (e) {}
+    }
+
+    function requestFullscreenFor(el) {
+      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+      if (req) { req.call(el); return true; }
+      return false;
+    }
+
+    function tryEnterFullscreen(videoEl) {
+      const ok = requestFullscreenFor(videoEl);
+      if (!ok && typeof videoEl.webkitEnterFullscreen === "function") {
+        try { videoEl.webkitEnterFullscreen(); } catch (e) {}
+      }
+    }
+
+    // ---------- screens ----------
+    const screenStart  = document.getElementById("screen-start");
+    const screenV1     = document.getElementById("screen-video1");
+    const screenV2     = document.getElementById("screen-video2");
+    const screenGame   = document.getElementById("screen-game");
+    const screens      = [screenStart, screenV1, screenV2, screenGame];
+
+    const gameFade     = document.getElementById("gameFade");
     function fadeInGame() {
       gameFade.classList.remove("in");
-      void gameFade.offsetWidth; // reflow
+      void gameFade.offsetWidth;
       requestAnimationFrame(() => gameFade.classList.add("in"));
     }
 
-    async function safePlayVideo() {
-      try { await video.play(); } catch (e) { /* controls allow manual play */ }
+    // ---------- elements ----------
+    const startBtn   = document.getElementById("startBtn");
+
+    const video1     = document.getElementById("video1");
+    const weiter1    = document.getElementById("weiter1");
+    const fs1        = document.getElementById("fs1");
+
+    const video2     = document.getElementById("video2");
+    const back2      = document.getElementById("back2");
+    const weiter2    = document.getElementById("weiter2");
+    const fs2        = document.getElementById("fs2");
+
+    const backToV2   = document.getElementById("backToVideo2");
+
+    // ---------- navigation ----------
+    function goStart() {
+      showOnly(screenStart, screens);
     }
+
+    function goVideo1({ restart = true } = {}) {
+      showOnly(screenV1, screens);
+      weiter1.disabled = true;
+
+      if (restart) {
+        try { video1.currentTime = 0; } catch (e) {}
+      }
+    }
+
+    function goVideo2({ restart = true } = {}) {
+      showOnly(screenV2, screens);
+      weiter2.disabled = true;
+
+      if (restart) {
+        try { video2.currentTime = 0; } catch (e) {}
+      }
+    }
+
+    function goGame() {
+      showOnly(screenGame, screens);
+      fadeInGame();
+      resetGameState();
+    }
+
+    // Start -> Video1
+    startBtn.addEventListener("click", async () => {
+      goVideo1({ restart: true });
+      await safePlay(video1);
+    });
+
+    // Video1: enable Weiter only if fully watched
+    video1.addEventListener("ended", () => { weiter1.disabled = false; });
+    video1.addEventListener("play",  () => { if (!video1.ended) weiter1.disabled = true; });
+    video1.addEventListener("seeked",() => { if (!video1.ended) weiter1.disabled = true; });
+
+    weiter1.addEventListener("click", async () => {
+      if (weiter1.disabled) return;
+      goVideo2({ restart: true });
+      // optional: auto-play second video after click
+      await safePlay(video2);
+    });
+
+    fs1.addEventListener("click", async () => {
+      tryEnterFullscreen(video1);
+      await safePlay(video1);
+    });
+
+    // Video2: back + enable Weiter only if fully watched
+    back2.addEventListener("click", () => {
+      // go back to video1, restart for a clean flow
+      try { video2.pause(); } catch (e) {}
+      goVideo1({ restart: false }); // keep video1 position if you want
+    });
+
+    video2.addEventListener("ended", () => { weiter2.disabled = false; });
+    video2.addEventListener("play",  () => { if (!video2.ended) weiter2.disabled = true; });
+    video2.addEventListener("seeked",() => { if (!video2.ended) weiter2.disabled = true; });
+
+    weiter2.addEventListener("click", () => {
+      if (weiter2.disabled) return;
+      goGame();
+    });
+
+    fs2.addEventListener("click", async () => {
+      tryEnterFullscreen(video2);
+      await safePlay(video2);
+    });
+
+    // Game: back to video2 (restart video2 for a clean flow)
+    backToV2.addEventListener("click", () => {
+      goVideo2({ restart: false }); // keep position; set true to restart
+    });
+
+    // ---------- game logic ----------
+    const area = document.getElementById("area");
+    const noBtn = document.getElementById("no");
+    const yesBtn = document.getElementById("yes");
+    const msg = document.getElementById("msg");
+
+    let yesChosen = false;
 
     function resetGameState() {
       yesChosen = false;
@@ -220,90 +349,13 @@
       placeNoSafely();
     }
 
-    function goToVideo({ resume = false } = {}) {
-      show(screenVideo);
-      // Keep "Weiter" disabled until the video has actually ended
-      weiterBtn.disabled = true;
-
-      if (resume) {
-        // do nothing; user continues watching
-      } else {
-        // restart from beginning
-        try { video.currentTime = 0; } catch (e) {}
-      }
-      // Don’t force play; let user decide (but we can try if it came from a click)
-      // safePlayVideo();
-    }
-
-    function goToGame() {
-      show(screenGame);
-      fadeInGame();
-      resetGameState();
-    }
-
-    // Start -> Video
-    startVideoBtn.addEventListener("click", async () => {
-      goToVideo({ resume: false });
-      await safePlayVideo();
-    });
-
-    // Enable "Weiter" ONLY when video fully ended
-    video.addEventListener("ended", () => {
-      weiterBtn.disabled = false;
-    });
-
-    // If user seeks backwards or restarts, keep "Weiter" disabled again
-    video.addEventListener("play", () => {
-      // If it was enabled from a previous full playthrough but user replays, disable until end again
-      if (!video.ended) weiterBtn.disabled = true;
-    });
-    video.addEventListener("seeked", () => {
-      if (!video.ended) weiterBtn.disabled = true;
-    });
-
-    // Click "Weiter" -> Game (with fade)
-    weiterBtn.addEventListener("click", () => {
-      if (weiterBtn.disabled) return;
-      goToGame();
-    });
-
-    // Back button on game -> Video (resume from beginning OR keep last frame?)
-    // Here: go back to video and restart it for a clean experience.
-    backToVideoBtn.addEventListener("click", () => {
-      // Optional: pause game vibe; no need to reset anything else
-      goToVideo({ resume: false });
-    });
-
-    // ---------- Fullscreen ----------
-    function requestFullscreenFor(el) {
-      const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
-      if (req) { req.call(el); return true; }
-      return false;
-    }
-
-    fullscreenBtn.addEventListener("click", async () => {
-      const ok = requestFullscreenFor(video);
-      if (!ok && typeof video.webkitEnterFullscreen === "function") {
-        try { video.webkitEnterFullscreen(); } catch (e) {}
-      }
-      await safePlayVideo();
-    });
-
-    // ---------- Game logic ----------
-    const area = document.getElementById("area");
-    const noBtn = document.getElementById("no");
-    const yesBtn = document.getElementById("yes");
-    const msg = document.getElementById("msg");
-
-    let yesChosen = false;
-
     yesBtn.addEventListener("click", () => {
       yesChosen = true;
       msg.textContent = "Yay! 😍 Dann sag mir wann & wo – ich freu mich!";
       noBtn.style.display = "none";
     });
 
-    // FIX: Prevent "Nein" click entirely (no matter what)
+    // Prevent "Nein" click entirely
     noBtn.addEventListener("click", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -311,12 +363,10 @@
       return false;
     });
 
-    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
-
     function safeBounds() {
       const maxX = area.clientWidth  - noBtn.offsetWidth;
       const maxY = area.clientHeight - noBtn.offsetHeight;
-      const pad = 22; // keep away from corners/edges
+      const pad = 22;
       return {
         minX: pad,
         minY: pad,
@@ -337,9 +387,7 @@
       setNoPos(x, y);
     }
 
-    function placeNoSafely() {
-      bumpNoRandom();
-    }
+    function placeNoSafely() { bumpNoRandom(); }
 
     function moveNoButtonAway(pointerX, pointerY) {
       if (yesChosen) return;
@@ -380,7 +428,7 @@
       moveNoButtonAway(t.clientX, t.clientY);
     }, { passive: true });
 
-    // Extra safety
+    // extra safety against corner trapping
     noBtn.addEventListener("mouseenter", () => bumpNoRandom());
     noBtn.addEventListener("touchstart", () => bumpNoRandom(), { passive: true });
 
@@ -390,7 +438,7 @@
       }
     });
 
-    // Initial fallback positions (not critical)
+    // initial fallback positions (not critical)
     noBtn.style.left  = noBtn.style.left  || "360px";
     noBtn.style.top   = noBtn.style.top   || "140px";
     yesBtn.style.left = yesBtn.style.left || "70px";
