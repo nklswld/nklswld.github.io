@@ -29,6 +29,15 @@
     h1 { margin: 0 0 12px; font-size: 26px; }
     p  { margin: 0 0 16px; color: #444; line-height: 1.35; }
 
+    /* Start image */
+    .start-img {
+      width: min(520px, 100%);
+      border-radius: 14px;
+      display: block;
+      margin: 0 auto 14px auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+    }
+
     /* Screens */
     .screen { display: none; }
     .screen.active { display: block; }
@@ -79,6 +88,12 @@
     .btn[disabled] {
       opacity: 0.55;
       cursor: not-allowed;
+    }
+
+    /* Show fullscreen button ONLY on mobile-ish screens */
+    .mobile-only { display: none; }
+    @media (max-width: 768px), (pointer: coarse) {
+      .mobile-only { display: inline-block; }
     }
 
     /* Game area */
@@ -136,6 +151,7 @@
 
     <!-- SCREEN 1: Click-to-start -->
     <div id="screen-start" class="screen active">
+      <img class="start-img" src="wir.png" alt="Wir ❤️" />
       <h1>Hei Baby,</h1>
       <p>da ich aktuell so weit weg bin habe ich mir eine kleine Aufmerksamkeit zu dem unbedeutenden Valentinstag überlegt. Im Anschluss findest du ein kleines Video vor, welches ich für dich erstellt habe und wünsche dir damit einen wu dervollen Start in den Tag! DU bist mein Zuhause! I looove girl! Muchos bussis</p>
       <div class="btnrow">
@@ -143,19 +159,18 @@
       </div>
     </div>
 
-    <!-- SCREEN 2: Video 1 (assets/video.mp4) -->
+    <!-- SCREEN 2: Video 1 -->
     <div id="screen-video1" class="screen">
       <h1>Nur für dich</h1>
 
       <video id="video1" controls playsinline preload="metadata">
-        <!-- ✅ Video 1 -->
         <source src="video.mp4" type="video/mp4" />
         Dein Browser kann das Video leider nicht abspielen.
       </video>
 
       <div class="btnrow">
         <button class="btn secondary" id="back1">Zurück</button>
-        <button class="btn secondary" id="fs1">Vollbild ⛶</button>
+        <button class="btn secondary mobile-only" id="fs1">Vollbild ⛶</button>
         <button class="btn" id="weiter1">Weiter</button>
       </div>
 
@@ -164,20 +179,18 @@
       </p>
     </div>
 
-    <!-- SCREEN 3: Video 2 (zusammenschnitt.mp4 in root) -->
+    <!-- SCREEN 3: Video 2 -->
     <div id="screen-video2" class="screen">
       <h1>Etwas romantisch darf ich ja auch mal sein</h1>
 
       <video id="video2" controls playsinline preload="metadata">
-        <!-- ✅ Video 2 im Root -->
         <source src="Zusammenschnitt.mp4" type="video/mp4" />
         Dein Browser kann das Video leider nicht abspielen.
       </video>
 
-      <!-- Buttons under the video -->
       <div class="btnrow">
         <button class="btn secondary" id="back2">Zurück</button>
-        <button class="btn secondary" id="fs2">Vollbild ⛶</button>
+        <button class="btn secondary mobile-only" id="fs2">Vollbild ⛶</button>
         <button class="btn" id="weiter2">Weiter</button>
       </div>
     </div>
@@ -194,7 +207,6 @@
 
         <div class="msg" id="msg"></div>
 
-        <!-- Back button under the game -->
         <div class="btnrow">
           <button class="btn secondary" id="backToVideo2">Zurück</button>
         </div>
@@ -301,6 +313,7 @@
       await safePlay(video2);
     });
 
+    // Fullscreen (mobile-only button exists in DOM; safe to bind)
     fs1.addEventListener("click", async () => {
       tryEnterFullscreen(video1);
       await safePlay(video1);
