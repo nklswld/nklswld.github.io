@@ -99,7 +99,7 @@
     /* Game area */
     .playground {
       position: relative;
-      height: 240px;
+      height: 170px;
       margin-top: 18px;
       border-radius: 14px;
       background: linear-gradient(180deg, #ffffff, #f2f2ff);
@@ -408,14 +408,14 @@
       const dy = pointerY - centerY;
       const dist = Math.hypot(dx, dy);
 
-      const triggerDistance = 110;
+      const triggerDistance = 130;
       if (dist > triggerDistance) return;
 
       const currentX = btnRect.left - areaRect.left;
       const currentY = btnRect.top  - areaRect.top;
 
       const angle = Math.atan2(dy, dx) + Math.PI;
-      const step  = 190;
+      const step  = 210;
 
       let newX = currentX + Math.cos(angle) * step + (Math.random() * 70 - 35);
       let newY = currentY + Math.sin(angle) * step + (Math.random() * 70 - 35);
