@@ -61,6 +61,19 @@
       max-height: 70vh;
     }
 
+    /* Happy video in game (hidden until "Ja") */
+    .happyvid{
+      display: none;
+      width: min(420px, 100%);
+      margin: 14px auto 0 auto;
+      border-radius: 14px;
+      background: #000;
+      box-shadow: 0 10px 30px rgba(0,0,0,.08);
+    }
+    .happyvid.show{
+      display: block;
+    }
+
     .btnrow {
       display: flex;
       gap: 10px;
@@ -207,6 +220,11 @@
 
         <div class="msg" id="msg"></div>
 
+        <video id="happyVid" class="happyvid" playsinline muted loop preload="metadata">
+          <source src="freuen.mp4" type="video/mp4" />
+          Dein Browser kann das Video leider nicht abspielen.
+        </video>
+
         <div class="btnrow">
           <button class="btn secondary" id="backToVideo2">Zurück</button>
         </div>
@@ -345,6 +363,7 @@
     const noBtn = document.getElementById("no");
     const yesBtn = document.getElementById("yes");
     const msg = document.getElementById("msg");
+    const happyVid = document.getElementById("happyVid");
 
     let yesChosen = false;
 
@@ -353,12 +372,20 @@
       msg.textContent = "";
       noBtn.style.display = "inline-block";
       placeNoSafely();
+
+      happyVid.classList.remove("show");
+      try { happyVid.pause(); } catch(e) {}
+      try { happyVid.currentTime = 0; } catch(e) {}
     }
 
-    yesBtn.addEventListener("click", () => {
+    yesBtn.addEventListener("click", async () => {
       yesChosen = true;
       msg.textContent = "Yay! 😍 Dann sag mir wann & wo – ich freu mich!";
       noBtn.style.display = "none";
+
+      happyVid.classList.add("show");
+      try { happyVid.currentTime = 0; } catch(e) {}
+      await safePlay(happyVid);
     });
 
     // Prevent "Nein" click entirely
