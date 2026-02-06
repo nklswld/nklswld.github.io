@@ -376,22 +376,26 @@
       msg.textContent = "";
       noBtn.style.display = "inline-block";
       area.style.display = "block";
-
+      gameTitle.style.display = "block";
+    
       happyVid.classList.remove("show");
       try { happyVid.pause(); } catch(e) {}
       try { happyVid.currentTime = 0; } catch(e) {}
     }
 
+
     yesBtn.addEventListener("click", async () => {
       yesChosen = true;
-      msg.textContent = "Yees! Da freu ich mich! :**";
+      msg.textContent = "Yay! 😍 Dann sag mir wann & wo – ich freu mich!";
       noBtn.style.display = "none";
       area.style.display = "none";
-
+      gameTitle.style.display = "none";
+    
       happyVid.classList.add("show");
       try { happyVid.currentTime = 0; } catch(e) {}
       await safePlay(happyVid);
     });
+
 
     // Prevent "Nein" click entirely
     noBtn.addEventListener("click", (e) => {
