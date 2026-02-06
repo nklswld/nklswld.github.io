@@ -133,15 +133,15 @@
     }
 
     #yes {
-      left: 70px;
-      top: 140px;
+      left: calc(50% - 120px);
+      top: 78px;
       background: #22c55e;
       color: #fff;
     }
 
     #no {
-      left: 360px;
-      top: 140px;
+      left: calc(50% + 20px);
+      top: 78px;
       background: #ef4444;
       color: #fff;
     }
@@ -153,8 +153,8 @@
     }
 
     @media (max-width: 520px) {
-      #yes { left: 36px; }
-      #no  { left: 200px; }
+      #yes { left: calc(50% - 110px); top: 78px; }
+      #no  { left: calc(50% + 10px);  top: 78px; }
     }
   </style>
 </head>
@@ -371,7 +371,7 @@
       yesChosen = false;
       msg.textContent = "";
       noBtn.style.display = "inline-block";
-      placeNoSafely();
+      area.style.display = "block";
 
       happyVid.classList.remove("show");
       try { happyVid.pause(); } catch(e) {}
@@ -382,6 +382,7 @@
       yesChosen = true;
       msg.textContent = "Yay! 😍 Dann sag mir wann & wo – ich freu mich!";
       noBtn.style.display = "none";
+      area.style.display = "none";
 
       happyVid.classList.add("show");
       try { happyVid.currentTime = 0; } catch(e) {}
