@@ -132,7 +132,6 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-
     #yes {
       left: calc(50% - 85px);
       top: 55px;
@@ -147,13 +146,13 @@
       color: #fff;
     }
 
-
     .msg {
       margin-top: 14px;
       font-weight: 700;
       min-height: 1.4em;
     }
 
+    /* ✅ EINZIGE ÄNDERUNG: Mobile-Positionen passend zu deinen aktuellen Werten */
     @media (max-width: 520px) {
       #yes { left: calc(50% - 85px); top: 55px; }
       #no  { left: calc(50% + 85px); top: 55px; }
@@ -381,8 +380,8 @@
       happyVid.classList.remove("show");
       try { happyVid.pause(); } catch(e) {}
       try { happyVid.currentTime = 0; } catch(e) {}
+      placeNoSafely();
     }
-
 
     yesBtn.addEventListener("click", async () => {
       yesChosen = true;
@@ -395,7 +394,6 @@
       try { happyVid.currentTime = 0; } catch(e) {}
       await safePlay(happyVid);
     });
-
 
     // Prevent "Nein" click entirely
     noBtn.addEventListener("click", (e) => {
