@@ -175,8 +175,6 @@
 
     <!-- SCREEN 2: Video 1 -->
     <div id="screen-video1" class="screen">
-     <!-- <h1>Nur für dich</h1> -->
-
       <video id="video1" controls playsinline preload="metadata">
         <source src="erste.mp4" type="video/mp4" />
         Dein Browser kann das Video leider nicht abspielen.
@@ -245,6 +243,12 @@
 
     async function safePlay(videoEl) {
       try { await videoEl.play(); } catch (e) {}
+    }
+
+    function resetVideo(videoEl) {
+      try { videoEl.pause(); } catch (e) {}
+      try { videoEl.currentTime = 0; } catch (e) {}
+      try { videoEl.load(); } catch (e) {}
     }
 
     function requestFullscreenFor(el) {
@@ -322,14 +326,15 @@
       await safePlay(video1);
     });
 
-    // Back button on Video1 -> Start
+    // Back button on Video1 -> Start (reset video1)
     back1.addEventListener("click", () => {
-      try { video1.pause(); } catch (e) {}
+      resetVideo(video1);
       goStart();
     });
 
-    // Weiter on Video1 -> Video2 (anytime)
+    // Weiter on Video1 -> Video2 (reset video1)
     weiter1.addEventListener("click", async () => {
+      resetVideo(video1);
       goVideo2({ restart: true });
       await safePlay(video2);
     });
@@ -340,14 +345,15 @@
       await safePlay(video1);
     });
 
-    // Video2: back to video1
+    // Video2: back to video1 (reset video2)
     back2.addEventListener("click", () => {
-      try { video2.pause(); } catch (e) {}
+      resetVideo(video2);
       goVideo1({ restart: false });
     });
 
-    // Weiter on Video2 -> Game (anytime)
+    // Weiter on Video2 -> Game (reset video2)
     weiter2.addEventListener("click", () => {
+      resetVideo(video2);
       goGame();
     });
 
@@ -356,7 +362,7 @@
       await safePlay(video2);
     });
 
-    // Game: back to video2
+    // Game: back to video2 (optional: keep as-is, no video playing here)
     backToV2.addEventListener("click", () => {
       goVideo2({ restart: false });
     });
@@ -381,7 +387,7 @@
       try { happyVid.pause(); } catch(e) {}
       try { happyVid.currentTime = 0; } catch(e) {}
 
-      centerButtons(); // ✅ geändert: Startpositionen exakt mittig setzen
+      centerButtons();
     }
 
     yesBtn.addEventListener("click", async () => {
@@ -430,7 +436,6 @@
 
     function placeNoSafely() { bumpNoRandom(); }
 
-    // ✅ neu: beide Buttons mittig (horizontal + vertikal) mit 100px Abstand
     function centerButtons() {
       const gap = 100;
 
@@ -494,15 +499,11 @@
 
     window.addEventListener("resize", () => {
       if (screenGame.classList.contains("active") && !yesChosen) {
-        centerButtons(); // ✅ geändert: bei Resize wieder sauber zentrieren
+        centerButtons();
       }
     });
 
-    // ✅ entfernt: Inline-Fallbacks, die CSS/Positionen überschrieben haben
-    // noBtn.style.left  = noBtn.style.left  || "360px";
-    // noBtn.style.top   = noBtn.style.top   || "140px";
-    // yesBtn.style.left = yesBtn.style.left || "70px";
-    // yesBtn.style.top  = yesBtn.style.top  || "140px";
+    // no inline fallback positions
   </script>
 </body>
 </html>
