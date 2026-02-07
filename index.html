@@ -376,11 +376,12 @@
       noBtn.style.display = "inline-block";
       area.style.display = "block";
       gameTitle.style.display = "block";
-    
+
       happyVid.classList.remove("show");
       try { happyVid.pause(); } catch(e) {}
       try { happyVid.currentTime = 0; } catch(e) {}
-      placeNoSafely();
+
+      centerButtons(); // ✅ geändert: Startpositionen exakt mittig setzen
     }
 
     yesBtn.addEventListener("click", async () => {
@@ -389,7 +390,7 @@
       noBtn.style.display = "none";
       area.style.display = "none";
       gameTitle.style.display = "none";
-    
+
       happyVid.classList.add("show");
       try { happyVid.currentTime = 0; } catch(e) {}
       await safePlay(happyVid);
@@ -428,6 +429,25 @@
     }
 
     function placeNoSafely() { bumpNoRandom(); }
+
+    // ✅ neu: beide Buttons mittig (horizontal + vertikal) mit 100px Abstand
+    function centerButtons() {
+      const gap = 100;
+
+      const yesW = yesBtn.offsetWidth;
+      const noW  = noBtn.offsetWidth;
+      const h    = Math.max(yesBtn.offsetHeight, noBtn.offsetHeight);
+
+      const centerY = Math.round((area.clientHeight - h) / 2);
+
+      const totalW = yesW + gap + noW;
+      const startX = Math.round((area.clientWidth - totalW) / 2);
+
+      yesBtn.style.left = startX + "px";
+      yesBtn.style.top  = centerY + "px";
+
+      setNoPos(startX + yesW + gap, centerY);
+    }
 
     function moveNoButtonAway(pointerX, pointerY) {
       if (yesChosen) return;
@@ -474,15 +494,15 @@
 
     window.addEventListener("resize", () => {
       if (screenGame.classList.contains("active") && !yesChosen) {
-        placeNoSafely();
+        centerButtons(); // ✅ geändert: bei Resize wieder sauber zentrieren
       }
     });
 
-    // initial fallback positions (not critical)
-    noBtn.style.left  = noBtn.style.left  || "360px";
-    noBtn.style.top   = noBtn.style.top   || "140px";
-    yesBtn.style.left = yesBtn.style.left || "70px";
-    yesBtn.style.top  = yesBtn.style.top  || "140px";
+    // ✅ entfernt: Inline-Fallbacks, die CSS/Positionen überschrieben haben
+    // noBtn.style.left  = noBtn.style.left  || "360px";
+    // noBtn.style.top   = noBtn.style.top   || "140px";
+    // yesBtn.style.left = yesBtn.style.left || "70px";
+    // yesBtn.style.top  = yesBtn.style.top  || "140px";
   </script>
 </body>
 </html>
